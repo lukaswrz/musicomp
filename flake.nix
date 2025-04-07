@@ -4,11 +4,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    devenv-root = {
-      url = "file+file:///dev/null";
-      flake = false;
-    };
-    devenv.url = "github:cachix/devenv";
   };
 
   outputs = {
@@ -18,14 +13,10 @@
     ...
   } @ inputs:
     flake-parts.lib.mkFlake {inherit inputs;} {
-      imports = [
-        inputs.devenv.flakeModule
-      ];
-
       systems = ["x86_64-linux" "aarch64-linux"];
 
       flake.nixosModules = let
-        musicomp = import ./nixos/musicomp.nix inputs;
+        musicomp = import ./nixos/musicomp inputs;
       in {
         inherit musicomp;
         default = musicomp;
@@ -37,16 +28,10 @@
         lib,
         ...
       }: {
-        devenv.shells.default = {
-          devenv.root = let
-            devenvRootFileContent = builtins.readFile inputs.devenv-root.outPath;
-          in
-            lib.mkIf (devenvRootFileContent != "") devenvRootFileContent;
-
-          name = "musicomp";
-
-          imports = [
-            ./devenv.nix
+        devShells.default = pkgs.mkShellNoCC {
+          packages = [
+            pkgs.python3
+            pkgs.python3Packages.hatchling
           ];
         };
 
