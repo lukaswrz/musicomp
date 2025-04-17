@@ -16,7 +16,7 @@
       systems = ["x86_64-linux" "aarch64-linux"];
 
       flake.nixosModules = let
-        musicomp = import ./nixos/musicomp inputs;
+        musicomp = import ./nixos/musicomp self;
       in {
         inherit musicomp;
         default = musicomp;
