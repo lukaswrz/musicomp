@@ -15,12 +15,7 @@
     flake-parts.lib.mkFlake {inherit inputs;} {
       systems = ["x86_64-linux" "aarch64-linux"];
 
-      flake.nixosModules = let
-        musicomp = import ./nixos/musicomp self;
-      in {
-        inherit musicomp;
-        default = musicomp;
-      };
+      flake.nixosModules.default = import ./module.nix self;
 
       perSystem = {
         pkgs,
@@ -35,14 +30,7 @@
           ];
         };
 
-        packages = let
-          packages = lib.packagesFromDirectoryRecursive {
-            inherit (pkgs) callPackage;
-            directory = ./packages;
-          };
-        in packages // {
-          default = packages.musicomp;
-        };
+        packages.default = pkgs.callPackage ./package.nix {};
       };
     };
 }

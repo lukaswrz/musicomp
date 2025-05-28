@@ -90,6 +90,9 @@ def main():
     src_dir = args.music[0]  # pyright: ignore[reportUnknownMemberType]
     dst_dir = args.comp[0]  # pyright: ignore[reportUnknownMemberType]
 
+    if args.verbose >= 1 or args.interactive:
+        print("Planning...", file=sys.stderr)
+
     plan = list(
         Todo.plan(
             src_dir,

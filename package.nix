@@ -7,7 +7,7 @@ python3Packages.buildPythonApplication {
   pname = "musicomp";
   version = "0.1.0";
 
-  src = ../../.;
+  src = ./.;
 
   pyproject = true;
 

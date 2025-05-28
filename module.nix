@@ -5,6 +5,7 @@ self: {
   config,
   ...
 }: let
+  cfg = config.services.musicomp;
   inherit (lib) types;
   inherit (utils.systemdUtils.unitOptions) unitOption;
 in {
@@ -73,43 +74,48 @@ in {
   };
 
   config = {
-    systemd.services =
-      lib.mapAttrs'
-      (
-        name: job:
-          lib.nameValuePair "musicomp-jobs-${name}" {
-            wantedBy = ["multi-user.target"];
-            restartIfChanged = false;
+    systemd = lib.mkMerge (
+      lib.mapAttrsToList (
+        jobName: job:
+        let
+          systemdName = "musicomp-job-${jobName}";
+          description = "musicomp job ${jobName}";
+        in
+        {
+          timers.${systemdName} = {
+            wantedBy = [ "timers.target" ];
+            inherit description;
+            inherit (job) timerConfig;
+          };
+
+          services.${systemdName} = {
+            inherit description;
+
+            serviceConfig = {
+              Type = "oneshot";
+              User = "root";
+              Group = "root";
+            };
 
             script = ''
-              ${lib.optionalString job.inhibitsSleep ''
-                ${lib.getExe' pkgs.systemd "systemd-inhibit"} \
-                  --mode block \
-                  --who musicomp \
-                  --what sleep \
-                  --why ${lib.escapeShellArg "Scheduled musicomp ${name}"}
-              ''}
+                ${lib.optionalString job.inhibitsSleep ''
+                  ${lib.getExe' config.systemd.package "systemd-inhibit"} \
+                    --mode block \
+                    --who ${lib.escapeShellArg systemdName} \
+                    --what sleep \
+                    --why ${lib.escapeShellArg "Scheduled musicomp job ${jobName}"}
+                ''}
 
-              ${lib.getExe job.package} \
-                ${lib.optionalString (job.workers > 0) "--workers ${job.workers}"} \
-                --verbose \
-                -- ${job.music} ${job.comp}
-            '';
+                ${lib.getExe job.package} \
+                  ${lib.optionalString (job.workers > 0) "--workers ${lib.escapeShellArg job.workers}"} \
+                  --verbose \
+                  -- ${lib.escapeShellArg job.music} ${lib.escapeShellArg job.comp}
+              '';
 
             postStart = job.post;
-
-            serviceConfig.Type = "oneshot";
-          }
-      )
-      config.services.musicomp.jobs;
-
-    systemd.timers =
-      lib.mapAttrs'
-      (name: job:
-        lib.nameValuePair "musicomp-jobs-${name}" {
-          wantedBy = ["timers.target"];
-          inherit (job) timerConfig;
-        })
-      (lib.filterAttrs (_: job: job.timerConfig != null) config.services.musicomp.jobs);
+          };
+        }
+      ) cfg.jobs
+    );
   };
 }
